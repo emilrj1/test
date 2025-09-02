@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Space Vibes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/framer-motion/dist/framer-motion.umd.js"></script>
+    <style>
+      body {
+        margin: 0;
+        overflow-x: hidden;
+        background: #050618;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body class="text-white">
+    <section class="relative w-full overflow-hidden bg-[#050618] text-white">
+      <!-- Canvas starfield -->
+      <canvas id="starfield" class="absolute inset-0 w-full h-[90vh] pointer-events-none"></canvas>
+
+      <!-- Top nav -->
+      <nav class="relative z-30 max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-gradient-to-tr from-indigo-500 to-pink-500 rounded-xl shadow-2xl flex items-center justify-center text-black font-bold">SV</div>
+          <div class="text-sm font-semibold tracking-wide">Space Vibes</div>
+        </div>
+        <div class="hidden md:flex items-center gap-6">
+          <a class="text-sm hover:underline" href="#features">Features</a>
+          <a class="text-sm hover:underline" href="#gallery">Galaxy</a>
+          <a class="text-sm hover:underline" href="#contact">Contact</a>
+          <button class="ml-2 px-4 py-2 rounded-full bg-gradient-to-r from-indigo-600 to-sky-500 text-sm font-semibold shadow-md">Join Beta</button>
+        </div>
+      </nav>
+
+      <!-- Hero content -->
+      <div class="relative z-20 max-w-7xl mx-auto px-6 pb-16 pt-12 flex flex-col-reverse md:flex-row items-center gap-8">
+        <div class="w-full md:w-6/12 lg:w-5/12">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-indigo-500/30 via-sky-400/20 to-purple-500/20 backdrop-blur-sm border border-white/5">Immersive • Interactive • Responsive</div>
+
+          <h1 class="mt-6 text-4xl md:text-6xl leading-tight font-extrabold">
+            Space Vibes — <span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-300 to-indigo-400">A living galaxy</span>
+          </h1>
+
+          <p class="mt-4 text-gray-300 max-w-xl">
+            En interaktiv landing page med parallax-planeter, twinkling starfield og dynamiske nebula-effekter. Perfekt til portfolios, launches eller et drømmende brand.
+          </p>
+
+          <div class="mt-6 flex items-center gap-4">
+            <a href="#gallery" class="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-gradient-to-r from-indigo-600 to-sky-500 shadow-lg text-sm font-semibold">Explore the Galaxy</a>
+            <a href="#features" class="text-sm text-gray-300 hover:underline">See features</a>
+          </div>
+
+          <div class="mt-8 grid grid-cols-2 gap-3 max-w-sm">
+            <div class="p-3 rounded-2xl bg-white/3 backdrop-blur-sm border border-white/6">
+              <div class="text-xs text-gray-300">Stars</div>
+              <div class="text-xl font-semibold">~300</div>
+            </div>
+            <div class="p-3 rounded-2xl bg-white/3 backdrop-blur-sm border border-white/6">
+              <div class="text-xs text-gray-300">Planets</div>
+              <div class="text-xl font-semibold">3</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="w-full md:w-6/12 lg:w-7/12 relative flex justify-center items-center" id="planets">
+          <div class="relative w-[520px] h-[420px] md:w-[650px] md:h-[520px] pointer-events-auto">
+            <div data-depth="0.15" class="absolute -left-24 -top-12 w-72 h-72 rounded-full bg-gradient-to-tr from-purple-700/40 to-pink-500/20 blur-[8px]"></div>
+            <div data-depth="0.6" class="absolute right-6 top-8 w-56 h-56 md:w-72 md:h-72 rounded-full bg-[conic-gradient(at_20%_30%,#ff8bd8,#7aa7ff,#5ee7df)] shadow-2xl flex items-center justify-center"></div>
+            <div data-depth="0.85" class="absolute left-24 bottom-12 w-24 h-24 rounded-full bg-gradient-to-br from-yellow-300/70 to-orange-400/40 shadow-md"></div>
+            <svg class="absolute inset-0 w-full h-full" viewBox="0 0 800 600"><ellipse cx="420" cy="260" rx="240" ry="110" fill="none" stroke="rgba(174,216,255,0.2)" stroke-width="1" /></svg>
+          </div>
+        </div>
+      </div>
+
+      <div id="features" class="relative z-10 max-w-7xl mx-auto px-6 pb-24">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="p-6 rounded-2xl bg-white/4 backdrop-blur-md border border-white/6">
+            <h3 class="font-semibold">Parallax Planets</h3>
+            <p class="mt-2 text-sm text-gray-300">Responsive 3-layer parallax that reacts to pointer movement.</p>
+          </div>
+          <div class="p-6 rounded-2xl bg-white/4 backdrop-blur-md border border-white/6">
+            <h3 class="font-semibold">Dynamic Starfield</h3>
+            <p class="mt-2 text-sm text-gray-300">Canvas-based starfield with twinkling, glow and shooting stars.</p>
+          </div>
+          <div class="p-6 rounded-2xl bg-white/4 backdrop-blur-md border border-white/6">
+            <h3 class="font-semibold">Nebula & Gradients</h3>
+            <p class="mt-2 text-sm text-gray-300">Layered gradients and soft noise add depth to the scene.</p>
+          </div>
+        </div>
+      </div>
+
+      <footer id="contact" class="relative z-20 border-t border-white/6 mt-8 py-8">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div>
+            <div class="text-sm font-semibold">Space Vibes</div>
+            <div class="text-xs text-gray-400">Built with ❤️</div>
+          </div>
+          <div class="flex items-center gap-3">
+            <a href="#" class="text-sm hover:underline">Docs</a>
+            <a href="#" class="text-sm hover:underline">GitHub</a>
+            <a href="#" class="px-4 py-2 rounded-full bg-gradient-to-r from-indigo-600 to-sky-500 text-sm font-semibold">Get Template</a>
+          </div>
+        </div>
+      </footer>
+    </section>
+
+    <script>
+      const canvas = document.getElementById("starfield");
+      const ctx = canvas.getContext("2d");
+      let stars = [];
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight * 0.9;
+      }
+
+      function initStars() {
+        stars = [];
+        for (let i = 0; i < 300; i++) {
+          stars.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 1.5,
+            twinkle: Math.random() * Math.PI * 2
+          });
+        }
+      }
+
+      function drawStars() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const g = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        g.addColorStop(0, "rgba(10,12,30,0.9)");
+        g.addColorStop(1, "rgba(5,10,25,0.95)");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        stars.forEach(s => {
+          const t = (Math.sin(Date.now() / 500 + s.twinkle) + 1) / 2;
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(255,255,255,${0.3 + 0.7 * t})`;
+          ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        requestAnimationFrame(drawStars);
+      }
+
+      resize();
+      initStars();
+      drawStars();
+      window.addEventListener("resize", () => {
+        resize();
+        initStars();
+      });
+    </script>
+  </body>
+</html>

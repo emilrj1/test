@@ -1,160 +1,650 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Space Vibes</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/framer-motion/dist/framer-motion.umd.js"></script>
-    <style>
-      body {
-        margin: 0;
-        overflow-x: hidden;
-        background: #050618;
-      }
-      canvas {
-        display: block;
-      }
-    </style>
-  </head>
-  <body class="text-white">
-    <section class="relative w-full overflow-hidden bg-[#050618] text-white">
-      <!-- Canvas starfield -->
-      <canvas id="starfield" class="absolute inset-0 w-full h-[90vh] pointer-events-none"></canvas>
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Space Vibes — Advanced</title>
 
-      <!-- Top nav -->
-      <nav class="relative z-30 max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-gradient-to-tr from-indigo-500 to-pink-500 rounded-xl shadow-2xl flex items-center justify-center text-black font-bold">SV</div>
-          <div class="text-sm font-semibold tracking-wide">Space Vibes</div>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    :root{
+      --nebula-1: 12,10,30;
+      --nebula-2: 22,18,50;
+      --nebula-3: 40,18,70;
+      --nebula-4: 5,10,25;
+    }
+
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: rgb(var(--nebula-1));
+      color:white;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      overflow-x:hidden;
+    }
+
+    /* Nebula gradient layer system */
+    .nebula {
+      position:fixed;
+      inset:0;
+      z-index:0;
+      pointer-events:none;
+      background: radial-gradient(circle at 10% 20%, rgba(var(--nebula-2),0.18), transparent 8%),
+                  radial-gradient(circle at 80% 70%, rgba(var(--nebula-3),0.12), transparent 12%),
+                  linear-gradient(180deg, rgba(var(--nebula-1),1) 0%, rgba(var(--nebula-4),1) 100%);
+      transition: background 2s linear;
+      filter: saturate(1.05) contrast(1.05);
+      mix-blend-mode: screen;
+      opacity:0.95;
+    }
+
+    /* Canvas cover */
+    canvas#stars {
+      position:fixed;
+      inset:0;
+      z-index:1;
+      display:block;
+    }
+
+    /* Foreground UI */
+    .ui {
+      position:relative;
+      z-index:20;
+      max-width:1200px;
+      margin:0 auto;
+    }
+
+    /* Planets container */
+    .planet-wrap { position:relative; width:680px; height:520px; touch-action:none; }
+    .planet {
+      position:absolute;
+      border-radius:9999px;
+      transform-origin:center;
+      will-change:transform, filter;
+      transition: box-shadow 300ms ease, transform 300ms ease;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+      cursor:pointer;
+    }
+    .planet .surface {
+      width:100%; height:100%;
+      border-radius:inherit;
+      position:relative;
+      overflow:hidden;
+    }
+    .planet:hover { transform: scale(1.05) translateZ(0); filter:brightness(1.08) saturate(1.15); }
+    .planet.pulse::after{
+      content:"";
+      position:absolute; inset:-12%;
+      border-radius:inherit;
+      box-shadow:0 0 48px rgba(255,255,255,0.06), 0 0 120px rgba(100, 160, 255, 0.06);
+      animation: pulse 2.6s infinite;
+      pointer-events:none;
+    }
+    @keyframes pulse {
+      0%{ transform:scale(.95); opacity:.12 }
+      50%{ transform:scale(1.08); opacity:.22 }
+      100%{ transform:scale(.95); opacity:.12 }
+    }
+
+    /* Shooting star style (for small DOM-based glints fallback) */
+    .shoot {
+      position:fixed;
+      z-index:15;
+      pointer-events:none;
+      width:2px; height:2px;
+      background:linear-gradient(90deg, rgba(255,255,255,1), rgba(255,255,255,0));
+      filter:blur(1px);
+      transform-origin:left center;
+    }
+
+    /* Basic nav + mobile */
+    .brand{
+      display:flex; align-items:center; gap:.65rem;
+      font-weight:700; letter-spacing:.02em;
+    }
+    .sv-logo {
+      width:44px; height:44px; border-radius:12px;
+      background:linear-gradient(135deg,#7c3aed,#06b6d4);
+      display:flex;align-items:center;justify-content:center;color:#081124;font-weight:800;
+      box-shadow:0 10px 30px rgba(124,58,237,0.12);
+      font-family:monospace;
+      font-size:14px;
+    }
+
+    /* small helpers */
+    .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(6px); border:1px solid rgba(255,255,255,0.04); }
+    .btn-primary { background:linear-gradient(90deg,#4f46e5,#06b6d4); color:white; padding:.55rem 1rem; border-radius:999px; font-weight:600; }
+
+    /* responsive tweaks */
+    @media (max-width:900px){
+      .planet-wrap{ width:92vw; height:56vw; max-height:520px }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nebula Gradient Layer -->
+  <div class="nebula" id="nebulaLayer" aria-hidden="true"></div>
+
+  <!-- Canvas starfield + meteors -->
+  <canvas id="stars" width="1600" height="900" aria-hidden="true"></canvas>
+
+  <!-- Shooting star DOM fallback container (for occasional big meteors) -->
+  <div id="meteorContainer" aria-hidden="true"></div>
+
+  <!-- UI content -->
+  <header class="ui px-6 py-6 flex items-center justify-between">
+    <div class="brand">
+      <div class="sv-logo">SV</div>
+      <div>
+        <div style="font-size:14px">Space Vibes</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.6)">Immersive • Interactive • Reactive</div>
+      </div>
+    </div>
+
+    <nav class="hidden md:flex items-center gap-6">
+      <a class="text-sm" href="#features">Features</a>
+      <a class="text-sm" href="#gallery">Galaxy</a>
+      <a class="text-sm" href="#contact">Contact</a>
+      <button class="btn-primary ml-2" id="joinBtn">Join Beta</button>
+    </nav>
+
+    <!-- mobile burger -->
+    <div class="md:hidden">
+      <button id="burger" class="glass p-2 rounded-md" aria-label="Menu">
+        <svg id="burgerIcon" width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M4 7h16M4 12h16M4 17h16" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile menu (hidden on desktop) -->
+  <div id="mobileMenu" class="md:hidden fixed top-0 left-0 right-0 z-30 pt-24 pb-8 bg-black/60 backdrop-blur-sm hidden">
+    <div class="px-6 space-y-4">
+      <a class="block text-lg font-semibold" href="#features">Features</a>
+      <a class="block text-lg font-semibold" href="#gallery">Galaxy</a>
+      <a class="block text-lg font-semibold" href="#contact">Contact</a>
+      <button class="btn-primary w-full mt-2">Get Template</button>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <main class="ui px-6 pb-20 mt-8">
+    <div class="flex flex-col-reverse md:flex-row items-center gap-8">
+      <!-- Left copy -->
+      <div class="w-full md:w-6/12">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-indigo-500/30 via-sky-400/20 to-purple-500/20 glass">Immersive • Interactive • Reactive</div>
+
+        <h1 class="mt-6 text-4xl md:text-6xl font-extrabold leading-tight">
+          Space Vibes — <span class="bg-clip-text text-transparent" style="background:linear-gradient(90deg,#7dd3fc,#a78bfa)">A living galaxy</span>
+        </h1>
+
+        <p class="mt-4 text-gray-300 max-w-xl">Ultra-responsive landing side med parallax-planeter, twinkling stjerner og dynamisk nebula — alt i ét HTML-file.</p>
+
+        <div class="mt-6 flex items-center gap-4">
+          <a href="#gallery" class="btn-primary inline-flex items-center gap-3">Explore the Galaxy</a>
+          <a href="#features" class="text-sm text-gray-300">See features</a>
         </div>
-        <div class="hidden md:flex items-center gap-6">
-          <a class="text-sm hover:underline" href="#features">Features</a>
-          <a class="text-sm hover:underline" href="#gallery">Galaxy</a>
-          <a class="text-sm hover:underline" href="#contact">Contact</a>
-          <button class="ml-2 px-4 py-2 rounded-full bg-gradient-to-r from-indigo-600 to-sky-500 text-sm font-semibold shadow-md">Join Beta</button>
-        </div>
-      </nav>
 
-      <!-- Hero content -->
-      <div class="relative z-20 max-w-7xl mx-auto px-6 pb-16 pt-12 flex flex-col-reverse md:flex-row items-center gap-8">
-        <div class="w-full md:w-6/12 lg:w-5/12">
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-indigo-500/30 via-sky-400/20 to-purple-500/20 backdrop-blur-sm border border-white/5">Immersive • Interactive • Responsive</div>
-
-          <h1 class="mt-6 text-4xl md:text-6xl leading-tight font-extrabold">
-            Space Vibes — <span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-300 to-indigo-400">A living galaxy</span>
-          </h1>
-
-          <p class="mt-4 text-gray-300 max-w-xl">
-            En interaktiv landing page med parallax-planeter, twinkling starfield og dynamiske nebula-effekter. Perfekt til portfolios, launches eller et drømmende brand.
-          </p>
-
-          <div class="mt-6 flex items-center gap-4">
-            <a href="#gallery" class="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-gradient-to-r from-indigo-600 to-sky-500 shadow-lg text-sm font-semibold">Explore the Galaxy</a>
-            <a href="#features" class="text-sm text-gray-300 hover:underline">See features</a>
+        <div class="mt-8 grid grid-cols-2 gap-3 max-w-sm">
+          <div class="p-3 rounded-2xl glass">
+            <div class="text-xs text-gray-300">Stars</div>
+            <div class="text-xl font-semibold" id="statStars">~0</div>
           </div>
-
-          <div class="mt-8 grid grid-cols-2 gap-3 max-w-sm">
-            <div class="p-3 rounded-2xl bg-white/3 backdrop-blur-sm border border-white/6">
-              <div class="text-xs text-gray-300">Stars</div>
-              <div class="text-xl font-semibold">~300</div>
-            </div>
-            <div class="p-3 rounded-2xl bg-white/3 backdrop-blur-sm border border-white/6">
-              <div class="text-xs text-gray-300">Planets</div>
-              <div class="text-xl font-semibold">3</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="w-full md:w-6/12 lg:w-7/12 relative flex justify-center items-center" id="planets">
-          <div class="relative w-[520px] h-[420px] md:w-[650px] md:h-[520px] pointer-events-auto">
-            <div data-depth="0.15" class="absolute -left-24 -top-12 w-72 h-72 rounded-full bg-gradient-to-tr from-purple-700/40 to-pink-500/20 blur-[8px]"></div>
-            <div data-depth="0.6" class="absolute right-6 top-8 w-56 h-56 md:w-72 md:h-72 rounded-full bg-[conic-gradient(at_20%_30%,#ff8bd8,#7aa7ff,#5ee7df)] shadow-2xl flex items-center justify-center"></div>
-            <div data-depth="0.85" class="absolute left-24 bottom-12 w-24 h-24 rounded-full bg-gradient-to-br from-yellow-300/70 to-orange-400/40 shadow-md"></div>
-            <svg class="absolute inset-0 w-full h-full" viewBox="0 0 800 600"><ellipse cx="420" cy="260" rx="240" ry="110" fill="none" stroke="rgba(174,216,255,0.2)" stroke-width="1" /></svg>
+          <div class="p-3 rounded-2xl glass">
+            <div class="text-xs text-gray-300">Planets</div>
+            <div class="text-xl font-semibold">3</div>
           </div>
         </div>
       </div>
 
-      <div id="features" class="relative z-10 max-w-7xl mx-auto px-6 pb-24">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="p-6 rounded-2xl bg-white/4 backdrop-blur-md border border-white/6">
-            <h3 class="font-semibold">Parallax Planets</h3>
-            <p class="mt-2 text-sm text-gray-300">Responsive 3-layer parallax that reacts to pointer movement.</p>
+      <!-- Right visual: planets -->
+      <div class="w-full md:w-6/12 flex justify-center">
+        <div id="planetWrap" class="planet-wrap" aria-hidden="true">
+          <!-- Back gas giant -->
+          <div class="planet" data-depth="0.15" id="gas1" style="left:-80px; top:-40px; width:300px; height:300px; background: radial-gradient(circle at 30% 20%, rgba(200,120,255,0.14), transparent 30%), linear-gradient(180deg,#2a0f4a,#4b2770); filter:blur(8px); opacity:.85;"></div>
+
+          <!-- Main planet -->
+          <div class="planet pulse" data-depth="0.6" id="mainPlanet" style="right:40px; top:30px; width:220px; height:220px;">
+            <div class="surface" style="background: conic-gradient(from 120deg at 30% 20%, #ff8bd8, #7aa7ff, #5ee7df); box-shadow: inset 0 -18px 40px rgba(0,0,0,0.25);"></div>
           </div>
-          <div class="p-6 rounded-2xl bg-white/4 backdrop-blur-md border border-white/6">
-            <h3 class="font-semibold">Dynamic Starfield</h3>
-            <p class="mt-2 text-sm text-gray-300">Canvas-based starfield with twinkling, glow and shooting stars.</p>
-          </div>
-          <div class="p-6 rounded-2xl bg-white/4 backdrop-blur-md border border-white/6">
-            <h3 class="font-semibold">Nebula & Gradients</h3>
-            <p class="mt-2 text-sm text-gray-300">Layered gradients and soft noise add depth to the scene.</p>
-          </div>
+
+          <!-- Moon -->
+          <div class="planet" data-depth="0.85" id="moon" style="left:180px; bottom:40px; width:86px; height:86px; background:linear-gradient(180deg,#ffd78c,#ff8d4a);"></div>
+
+          <!-- Orbit ring (svg) -->
+          <svg viewBox="0 0 800 600" class="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="xMidYMid slice" style="z-index:8;">
+            <defs>
+              <linearGradient id="orbitGrad"><stop offset="0" stop-color="#6ee7ff" stop-opacity="0.06" /><stop offset="1" stop-color="#a78bfa" stop-opacity="0.02" /></linearGradient>
+            </defs>
+            <ellipse cx="420" cy="260" rx="240" ry="110" fill="none" stroke="url(#orbitGrad)" stroke-width="1"></ellipse>
+          </svg>
         </div>
       </div>
+    </div>
 
-      <footer id="contact" class="relative z-20 border-t border-white/6 mt-8 py-8">
-        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div>
-            <div class="text-sm font-semibold">Space Vibes</div>
-            <div class="text-xs text-gray-400">Built with ❤️</div>
-          </div>
-          <div class="flex items-center gap-3">
-            <a href="#" class="text-sm hover:underline">Docs</a>
-            <a href="#" class="text-sm hover:underline">GitHub</a>
-            <a href="#" class="px-4 py-2 rounded-full bg-gradient-to-r from-indigo-600 to-sky-500 text-sm font-semibold">Get Template</a>
-          </div>
-        </div>
-      </footer>
+    <!-- Features -->
+    <section id="features" class="mt-12">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <article class="p-6 rounded-2xl glass">
+          <h3 class="font-semibold">Parallax Planets</h3>
+          <p class="mt-2 text-sm text-gray-300">3-lags parallax via pointer/touch/orientation.</p>
+        </article>
+        <article class="p-6 rounded-2xl glass">
+          <h3 class="font-semibold">Reactive Sound</h3>
+          <p class="mt-2 text-sm text-gray-300">WebAudio synth click feedback ved interaktion.</p>
+        </article>
+        <article class="p-6 rounded-2xl glass">
+          <h3 class="font-semibold">Shooting Stars</h3>
+          <p class="mt-2 text-sm text-gray-300">Canvas + DOM meteors for dramatic effect.</p>
+        </article>
+      </div>
     </section>
 
-    <script>
-      const canvas = document.getElementById("starfield");
-      const ctx = canvas.getContext("2d");
-      let stars = [];
+    <!-- Footer CTA -->
+    <footer id="contact" class="mt-12 pt-8 border-t border-white/6">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+          <div class="font-semibold">Space Vibes</div>
+          <div class="text-xs text-gray-400">Built with ❤️ — tweak freely</div>
+        </div>
+        <div class="flex items-center gap-3">
+          <a class="text-sm" href="#">Docs</a>
+          <a class="text-sm" href="#">GitHub</a>
+          <a class="btn-primary" href="#">Get Template</a>
+        </div>
+      </div>
+    </footer>
+  </main>
 
-      function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight * 0.9;
-      }
+  <!-- --------------- JavaScript (all in-file) --------------- -->
+  <script>
+  (function(){
+    // -----------------------------
+    // Helpers & state
+    // -----------------------------
+    const canvas = document.getElementById('stars');
+    const ctx = canvas.getContext('2d', { alpha: true });
+    const nebula = document.getElementById('nebulaLayer');
+    const planetWrap = document.getElementById('planetWrap');
+    const statStars = document.getElementById('statStars');
+    const meteorContainer = document.getElementById('meteorContainer');
 
-      function initStars() {
-        stars = [];
-        for (let i = 0; i < 300; i++) {
-          stars.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            size: Math.random() * 1.5,
-            twinkle: Math.random() * Math.PI * 2
-          });
-        }
-      }
+    let W = innerWidth, H = innerHeight;
+    let stars = [];
+    let starCount = Math.max(120, Math.floor((W*H)/10000)); // adaptive
+    let pointer = { x: W/2, y: H/2, down:false };
+    let deviceTilt = { alpha:0, beta:0, gamma:0 };
 
-      function drawStars() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const g = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-        g.addColorStop(0, "rgba(10,12,30,0.9)");
-        g.addColorStop(1, "rgba(5,10,25,0.95)");
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Performance controls
+    let lastResize = 0;
+    const RESIZE_DEBOUNCE = 120;
 
-        stars.forEach(s => {
-          const t = (Math.sin(Date.now() / 500 + s.twinkle) + 1) / 2;
-          ctx.beginPath();
-          ctx.fillStyle = `rgba(255,255,255,${0.3 + 0.7 * t})`;
-          ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
-          ctx.fill();
-        });
-        requestAnimationFrame(drawStars);
-      }
-
-      resize();
+    // Init sizes
+    function resize() {
+      W = innerWidth; H = innerHeight;
+      canvas.width = W; canvas.height = H;
+      starCount = Math.max(120, Math.floor((W*H)/10000));
       initStars();
-      drawStars();
-      window.addEventListener("resize", () => {
-        resize();
-        initStars();
+      statStars.textContent = "~" + starCount;
+    }
+    window.addEventListener('resize', () => {
+      const now = Date.now();
+      if (now - lastResize < RESIZE_DEBOUNCE) return;
+      lastResize = now;
+      resize();
+    });
+
+    // -----------------------------
+    // Starfield
+    // -----------------------------
+    function rand(a,b){ return a + Math.random()*(b-a); }
+
+    function initStars(){
+      stars = [];
+      for(let i=0;i<starCount;i++){
+        const layer = [0.25,0.6,1][i%3];
+        stars.push({
+          x: Math.random()*W,
+          y: Math.random()*H,
+          z: layer,
+          r: Math.random()*1.6*layer,
+          base: Math.random()*0.8 + 0.2,
+          tw: Math.random()*Math.PI*2
+        });
+      }
+    }
+
+    // draw stars + small nebula noise
+    function drawStars(t){
+      ctx.clearRect(0,0,W,H);
+
+      // soft gradient overlay (animated subtle)
+      const g = ctx.createLinearGradient(0, 0, W, H);
+      g.addColorStop(0, `rgba(10,12,30,0.95)`);
+      g.addColorStop(0.4, `rgba(22,18,50,0.6)`);
+      g.addColorStop(1, `rgba(5,10,25,0.95)`);
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,W,H);
+
+      // tiny noise/blobs for depth
+      for(let i=0;i<40;i++){
+        const rx = (i*137) % W + Math.sin(t/4000 + i)*20;
+        const ry = (i*83) % H + Math.cos(t/3000 + i)*14;
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(120,80,200,0.02)`;
+        ctx.arc(rx,ry,200,0,Math.PI*2);
+        ctx.fill();
+      }
+
+      // stars
+      for(let s of stars){
+        const tw = (Math.sin(t/600 + s.tw) + 1)/2;
+        const alpha = s.base * (0.45 + 0.6*tw);
+        // parallax offset based on pointer + tilt
+        const mx = (pointer.x - W/2) * 0.0005 * (1 - s.z) + deviceTilt.gamma*0.02*(1-s.z);
+        const my = (pointer.y - H/2) * 0.0005 * (1 - s.z) + deviceTilt.beta*0.015*(1-s.z);
+        const x = s.x + mx * 200;
+        const y = s.y + my * 140;
+
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+        ctx.arc(x,y, Math.max(0.3, s.r), 0, Math.PI*2);
+        ctx.fill();
+
+        // soft glow
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(150,180,255,${alpha*0.06})`;
+        ctx.arc(x,y, s.r*5, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+
+    // animation loop
+    let rafId = null;
+    function loop(t){
+      drawStars(t || performance.now());
+      rafId = requestAnimationFrame(loop);
+    }
+
+    // -----------------------------
+    // Shooting stars (canvas + DOM meteors)
+    // -----------------------------
+    function spawnMeteor() {
+      // 70% canvas tiny streak, 30% big DOM meteor
+      if (Math.random() < 0.7) {
+        // canvas shooting star
+        const sx = Math.random()*W;
+        const sy = Math.random()*H*0.6;
+        const len = rand(60,160);
+        const angle = rand(-0.5, 0.2);
+        const speed = rand(800, 1800);
+        const start = performance.now();
+        const dur = rand(600,1200);
+
+        (function anim(now){
+          const elapsed = now - start;
+          const t = elapsed / dur;
+          if (t>1) return;
+          // fade out tail
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(255,255,255,${(1-t)*0.95})`;
+          ctx.lineWidth = 1.6;
+          const dx = Math.cos(angle) * len * t * (speed/1200);
+          const dy = Math.sin(angle) * len * t * (speed/1200);
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(sx + dx, sy + dy);
+          ctx.stroke();
+          ctx.restore();
+          requestAnimationFrame(anim);
+        })(performance.now());
+      } else {
+        // big DOM meteor (fancier)
+        const el = document.createElement('div');
+        el.className = 'shoot';
+        const startX = Math.random() < 0.5 ? -50 : W + 50;
+        const startY = Math.random()*H*0.6;
+        const angle = startX<0 ? rand(-8,-4) : rand(4,8);
+        el.style.left = startX + 'px';
+        el.style.top = startY + 'px';
+        el.style.opacity = '0.95';
+        el.style.transform = `rotate(${angle}deg) scale(${rand(1.2,2.2)})`;
+        meteorContainer.appendChild(el);
+
+        // animate across
+        const dist = W + 200;
+        const dur = rand(900,1600);
+        const start = performance.now();
+        (function anim(now){
+          const elapsed = now - start;
+          const t = elapsed/dur;
+          if (t>1){ el.remove(); return; }
+          // translate X
+          const x = startX < 0 ? startX + dist * t : startX - dist * t;
+          const y = startY + Math.sin(t*Math.PI)*40;
+          el.style.left = x + 'px';
+          el.style.top = y + 'px';
+          el.style.opacity = String(1 - t);
+          requestAnimationFrame(anim);
+        })(performance.now());
+      }
+    }
+
+    // meteors interval (randomized)
+    setInterval(() => {
+      if (Math.random() < 0.42) spawnMeteor();
+    }, 900);
+
+    // -----------------------------
+    // Planet parallax + interactions
+    // -----------------------------
+    const planets = Array.from(document.querySelectorAll('.planet')).map(el=>{
+      return {
+        el,
+        depth: parseFloat(el.dataset.depth || '0.5'),
+        w: el.offsetWidth,
+        h: el.offsetHeight,
+        bbox: el.getBoundingClientRect()
+      };
+    });
+
+    // update bounding boxes
+    function updatePlanetBoxes(){
+      planets.forEach(p=>{
+        p.w = p.el.offsetWidth;
+        p.h = p.el.offsetHeight;
+        p.bbox = p.el.getBoundingClientRect();
       });
-    </script>
-  </body>
+    }
+
+    // pointer handling
+    function onPointerMove(e){
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      pointer.x = clientX; pointer.y = clientY;
+
+      // apply transform to each planet
+      planets.forEach(p=>{
+        const rect = p.bbox;
+        // % position relative to center of wrap
+        const wrap = planetWrap.getBoundingClientRect();
+        const px = (clientX - (wrap.left + wrap.width/2)) / (wrap.width/2);
+        const py = (clientY - (wrap.top + wrap.height/2)) / (wrap.height/2);
+        const tx = px * p.depth * 28;
+        const ty = py * p.depth * 18;
+        const rot = px * p.depth * 10;
+        p.el.style.transform = `translate3d(${tx}px, ${ty}px, 0) rotate(${rot}deg)`;
+      });
+    }
+
+    // pointer out -> relax to center
+    function onPointerOut(){
+      planets.forEach(p=>{
+        p.el.style.transform = '';
+      });
+    }
+
+    // click planets produce sound + small scale pop
+    function onPlanetClick(e){
+      const el = e.currentTarget;
+      // micro animation
+      el.animate([
+        { transform: el.style.transform || 'scale(1)' },
+        { transform: (el.style.transform || '') + ' scale(1.08)' },
+        { transform: el.style.transform || 'scale(1)' }
+      ], { duration: 380, easing:'cubic-bezier(.2,.9,.3,1)'});
+
+      // WebAudio click
+      audioClick();
+      // little flash
+      const fx = document.createElement('div');
+      fx.style.position = 'absolute';
+      fx.style.width = '22px';
+      fx.style.height = '22px';
+      fx.style.left = (e.clientX - el.getBoundingClientRect().left - 11) + 'px';
+      fx.style.top = (e.clientY - el.getBoundingClientRect().top - 11) + 'px';
+      fx.style.borderRadius = '50%';
+      fx.style.background = 'radial-gradient(circle, rgba(255,255,255,0.9), rgba(255,255,255,0.2))';
+      fx.style.pointerEvents = 'none';
+      el.appendChild(fx);
+      setTimeout(()=>fx.remove(), 420);
+    }
+
+    // attach listeners
+    planetWrap.addEventListener('pointermove', onPointerMove);
+    planetWrap.addEventListener('pointerleave', onPointerOut);
+    planetWrap.addEventListener('touchmove', onPointerMove, {passive:true});
+
+    // attach click events to planets
+    planets.forEach(p=>{
+      p.el.addEventListener('click', onPlanetClick);
+    });
+
+    // device orientation (for mobile tilt parallax)
+    if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      // iOS requires permission; lazy request on first user interaction
+      window.addEventListener('touchstart', function askPerm(){
+        DeviceOrientationEvent.requestPermission().catch(()=>{}).then(()=>{});
+        window.removeEventListener('touchstart', askPerm);
+      }, { once: true });
+    }
+    window.addEventListener('deviceorientation', (ev)=>{
+      deviceTilt.alpha = ev.alpha || 0;
+      deviceTilt.beta = ev.beta || 0;
+      deviceTilt.gamma = ev.gamma || 0;
+    });
+
+    // -----------------------------
+    // Nebula auto-changing gradients
+    // -----------------------------
+    const nebulaPalettes = [
+      ['12,10,30','22,18,50','40,18,70','5,10,25'],
+      ['8,6,20','28,12,60','90,34,120','2,6,16'],
+      ['14,10,34','26,18,62','80,30,100','6,8,26'],
+      ['4,6,14','18,10,48','45,22,74','2,4,12']
+    ];
+    let paletteIndex = 0;
+    function cycleNebula(){
+      paletteIndex = (paletteIndex + 1) % nebulaPalettes.length;
+      const p = nebulaPalettes[paletteIndex];
+      document.documentElement.style.setProperty('--nebula-1', p[0]);
+      document.documentElement.style.setProperty('--nebula-2', p[1]);
+      document.documentElement.style.setProperty('--nebula-3', p[2]);
+      document.documentElement.style.setProperty('--nebula-4', p[3]);
+      // soft periodic change
+      setTimeout(cycleNebula, rand(8000,14000));
+    }
+    setTimeout(cycleNebula, 2000);
+
+    // -----------------------------
+    // Audio: WebAudio small synth for clicks
+    // -----------------------------
+    let audioCtx = null;
+    function getAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      return audioCtx;
+    }
+
+    function audioClick(){
+      const ctx = getAudio();
+      const now = ctx.currentTime;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(rand(280, 520), now);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(0.12, now + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(now);
+      o.stop(now + 0.45);
+    }
+
+    // safe resume audio on user gesture (for browsers that block autoplay)
+    function ensureAudioOnGesture(){
+      const resume = () => {
+        try{ getAudio().resume && getAudio().resume(); }catch(e){}
+        window.removeEventListener('pointerdown', resume);
+        window.removeEventListener('touchstart', resume);
+      };
+      window.addEventListener('pointerdown', resume, { once:true });
+      window.addEventListener('touchstart', resume, { once:true });
+    }
+    ensureAudioOnGesture();
+
+    // -----------------------------
+    // Mobile burger menu toggle
+    // -----------------------------
+    const burger = document.getElementById('burger');
+    const mobileMenu = document.getElementById('mobileMenu');
+    burger.addEventListener('click', ()=>{
+      const open = mobileMenu.classList.toggle('hidden');
+      // animate icon toggle
+      const icon = document.getElementById('burgerIcon');
+      if (mobileMenu.classList.contains('hidden')) {
+        // burger -> default
+        icon.innerHTML = '<path d=\"M4 7h16M4 12h16M4 17h16\" stroke=\"white\" stroke-width=\"1.6\" stroke-linecap=\"round\"/>';
+      } else {
+        // close X
+        icon.innerHTML = '<path d=\"M6 6 L18 18 M6 18 L18 6\" stroke=\"white\" stroke-width=\"1.8\" stroke-linecap=\"round\"/>';
+      }
+    });
+
+    // -----------------------------
+    // Init + start loop
+    // -----------------------------
+    resize();
+    initStars();
+    loop();
+
+    // update planet bbox on resize occasionally
+    window.addEventListener('resize', ()=>{
+      setTimeout(updatePlanetBoxes, 220);
+    });
+
+    // expose some dev/test hooks (optional)
+    window.SV = {
+      spawnMeteor,
+      audioClick,
+      resize
+    };
+
+    // small accessibility: allow keyboard enter to "click" main planet
+    const mainPlanet = document.getElementById('mainPlanet');
+    mainPlanet.setAttribute('tabindex','0');
+    mainPlanet.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') audioClick(); });
+
+  })();
+  </script>
+
+</body>
 </html>
